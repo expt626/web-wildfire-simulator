@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scenario Editor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --bg: #0e1116;
+      --surface: #181c24;
+      --surface-strong: #1f2632;
+      --text: #eceff4;
+      --muted: #99a1b0;
+      --accent: #5bc4ff;
+      --accent-soft: rgba(91, 196, 255, 0.16);
+      --border: rgba(255,255,255,0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, rgba(91,196,255,0.08), transparent 25%),
+                  linear-gradient(180deg, #13181f 0%, #0c1016 100%);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .panel {
+      width: min(100%, 1200px);
+      padding: 28px;
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 40px 120px rgba(0, 0, 0, 0.25);
+      display: grid;
+      gap: 24px;
+    }
+
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .title-group {
+      min-width: 240px;
+      display: grid;
+      gap: 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.75rem, 2.1vw, 2.6rem);
+      letter-spacing: -0.03em;
+    }
+
+    .description {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.7;
+      max-width: 44rem;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .toolbar button,
+    .entity-button,
+    .config-row input,
+    .config-row select {
+      border: none;
+      border-radius: 999px;
+      font: inherit;
+      transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .toolbar button,
+    .entity-button {
+      min-width: 108px;
+      padding: 14px 18px;
+      background: #1a73ff;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 14px 35px rgba(26, 115, 255, 0.18);
+    }
+
+    .toolbar button.secondary,
+    .entity-button.secondary {
+      background: rgba(255,255,255,0.07);
+      color: var(--text);
+      box-shadow: none;
+    }
+
+    .toolbar button:hover,
+    .entity-button:hover {
+      transform: translateY(-1px);
+    }
+
+    .editor-grid {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 24px;
+    }
+
+    .side-panel,
+    .map-panel {
+      display: grid;
+      gap: 18px;
+    }
+
+    .card {
+      border-radius: 24px;
+      padding: 20px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      display: grid;
+      gap: 16px;
+    }
+
+    .palette {
+      display: grid;
+      gap: 14px;
+    }
+
+    .entity-item {
+      padding: 16px;
+      border-radius: 18px;
+      display: grid;
+      gap: 8px;
+      cursor: grab;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .entity-item strong {
+      display: block;
+      font-size: 1rem;
+    }
+
+    .entity-color {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    .config-row {
+      display: grid;
+      gap: 10px;
+    }
+
+    .config-row label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .config-row input,
+    .config-row select,
+    .config-row textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.08);
+      outline: none;
+    }
+
+    .config-row input[type="number"] {
+      appearance: textfield;
+    }
+
+    .map-card {
+      border-radius: 24px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+      display: grid;
+      gap: 14px;
+    }
+
+    #mapCanvas {
+      width: 100%;
+      height: 520px;
+      display: block;
+      background: linear-gradient(180deg, #091018 0%, #0d1118 100%);
+      touch-action: none;
+    }
+
+    .map-footer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 8px 8px;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .status-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .status-pill {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text);
+      font-size: 0.92rem;
+    }
+
+    .details-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .entity-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      cursor: pointer;
+    }
+
+    .entity-row.selected {
+      border-color: #1a73ff;
+      box-shadow: 0 0 0 2px rgba(26,115,255,0.12);
+    }
+
+    .entity-row span {
+      display: block;
+    }
+
+    @media (max-width: 1024px) {
+      .editor-grid {
+        grid-template-columns: 1fr;
+      }
+      .toolbar { justify-content: center; }
+    }
+
+    @media (max-width: 720px) {
+      .side-panel, .map-panel { gap: 14px; }
+      .toolbar button,
+      .entity-button { min-width: auto; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <section class="panel">
+    <div class="header">
+      <div class="title-group">
+        <h1>Scenario Editor</h1>
+        <p class="description">Drag entity types onto the map to create a start state, customize their behavior values, or generate large random scenarios. Play, pause, stop, and reset the simulation while entities move based on configured motion attributes.</p>
+      </div>
+      <div class="toolbar">
+        <button id="playBtn">Play</button>
+        <button id="pauseBtn" class="secondary">Pause</button>
+        <button id="stopBtn" class="secondary">Stop</button>
+        <button id="resetBtn" class="secondary">Reset</button>
+      </div>
+    </div>
+
+    <div class="editor-grid">
+      <div class="side-panel">
+        <div class="card">
+          <h2>Entity Palette</h2>
+          <p class="description">Drag a type onto the map to place it with default values.</p>
+          <div class="palette" id="palette">
+            <div class="entity-item" draggable="true" data-type="fixedWing">
+              <span><span class="entity-color" style="background:#4ab6ff"></span><strong>Fixed Wing</strong></span>
+              <span>High-speed air asset</span>
+            </div>
+            <div class="entity-item" draggable="true" data-type="rotaryWing">
+              <span><span class="entity-color" style="background:#8bc34a"></span><strong>Rotary Wing</strong></span>
+              <span>Highly maneuverable helicopter</span>
+            </div>
+            <div class="entity-item" draggable="true" data-type="landVehicle">
+              <span><span class="entity-color" style="background:#ffb74d"></span><strong>Land Vehicle</strong></span>
+              <span>Ground movement asset</span>
+            </div>
+            <div class="entity-item" draggable="true" data-type="ship">
+              <span><span class="entity-color" style="background:#5c6bc0"></span><strong>Ship</strong></span>
+              <span>Sea-based unit</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Random Generation</h2>
+          <div class="config-row">
+            <label>Fixed Wing count
+              <input id="randomFixedWing" type="number" min="0" value="0" />
+            </label>
+            <label>Rotary Wing count
+              <input id="randomRotaryWing" type="number" min="0" value="0" />
+            </label>
+            <label>Land Vehicle count
+              <input id="randomLandVehicle" type="number" min="0" value="0" />
+            </label>
+            <label>Ship count
+              <input id="randomShip" type="number" min="0" value="0" />
+            </label>
+            <button class="entity-button" id="generateBtn">Generate Random</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Scenario Summary</h2>
+          <div class="status-bar">
+            <span class="status-pill" id="countTotal">Total: 0</span>
+            <span class="status-pill" id="countFixedWing">Fixed Wing: 0</span>
+            <span class="status-pill" id="countRotaryWing">Rotary Wing: 0</span>
+            <span class="status-pill" id="countLandVehicle">Land: 0</span>
+            <span class="status-pill" id="countShip">Ship: 0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="map-panel">
+        <div class="map-card">
+          <canvas id="mapCanvas"></canvas>
+          <div class="map-footer">
+            <span>Drag entities from the palette onto the map to place them.</span>
+            <span>Click an entity to edit its properties.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Entity Properties</h2>
+          <div class="details-list" id="propertyPanel">
+            <p class="description">Select an entity on the map to view and modify its behavior values.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const canvas = document.getElementById('mapCanvas');
+    const ctx = canvas.getContext('2d');
+    const playBtn = document.getElementById('playBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const generateBtn = document.getElementById('generateBtn');
+    const propertyPanel = document.getElementById('propertyPanel');
+    const countTotal = document.getElementById('countTotal');
+    const countFixedWing = document.getElementById('countFixedWing');
+    const countRotaryWing = document.getElementById('countRotaryWing');
+    const countLandVehicle = document.getElementById('countLandVehicle');
+    const countShip = document.getElementById('countShip');
+
+    const randomInputs = {
+      fixedWing: document.getElementById('randomFixedWing'),
+      rotaryWing: document.getElementById('randomRotaryWing'),
+      landVehicle: document.getElementById('randomLandVehicle'),
+      ship: document.getElementById('randomShip')
+    };
+
+    const entityTypes = {
+      fixedWing: {
+        label: 'Fixed Wing',
+        color: '#4ab6ff',
+        default: { velocity: 90, acceleration: 2.5, turnRadius: 120, turnRate: 0.015 }
+      },
+      rotaryWing: {
+        label: 'Rotary Wing',
+        color: '#8bc34a',
+        default: { velocity: 45, acceleration: 1.6, turnRadius: 70, turnRate: 0.04 }
+      },
+      landVehicle: {
+        label: 'Land Vehicle',
+        color: '#ffb74d',
+        default: { velocity: 35, acceleration: 2.2, turnRadius: 40, turnRate: 0.065 }
+      },
+      ship: {
+        label: 'Ship',
+        color: '#5c6bc0',
+        default: { velocity: 20, acceleration: 0.85, turnRadius: 90, turnRate: 0.02 }
+      }
+    };
+
+    let entities = [];
+    let initialEntities = [];
+    let selectedEntity = null;
+    let running = false;
+    let animationId = null;
+    let lastUpdate = performance.now();
+
+    function resizeCanvas() {
+      canvas.width = canvas.clientWidth * window.devicePixelRatio;
+      canvas.height = canvas.clientHeight * window.devicePixelRatio;
+      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+      drawMap();
+    }
+
+    function createEntity(type, x, y) {
+      const template = entityTypes[type];
+      return {
+        id: `${type}-${Math.random().toString(36).slice(2, 10)}`,
+        type,
+        label: template.label,
+        x,
+        y,
+        heading: Math.random() * Math.PI * 2,
+        velocity: template.default.velocity,
+        acceleration: template.default.acceleration,
+        turnRadius: template.default.turnRadius,
+        turnRate: template.default.turnRate
+      };
+    }
+
+    function createEntityAt(type, clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.max(16, Math.min(rect.width - 16, clientX - rect.left));
+      const y = Math.max(16, Math.min(rect.height - 16, clientY - rect.top));
+      entities.push(createEntity(type, x, y));
+      saveInitialState();
+      updateSummary();
+      drawMap();
+    }
+
+    function saveInitialState() {
+      initialEntities = entities.map(entity => ({ ...entity }));
+    }
+
+    function resetToInitial() {
+      entities = initialEntities.map(entity => ({ ...entity }));
+      selectedEntity = null;
+      updateSummary();
+      updatePropertyPanel();
+      drawMap();
+    }
+
+    function updateSummary() {
+      const counts = { fixedWing: 0, rotaryWing: 0, landVehicle: 0, ship: 0 };
+      entities.forEach(entity => counts[entity.type] += 1);
+      const total = entities.length;
+      countTotal.textContent = `Total: ${total}`;
+      countFixedWing.textContent = `Fixed Wing: ${counts.fixedWing}`;
+      countRotaryWing.textContent = `Rotary Wing: ${counts.rotaryWing}`;
+      countLandVehicle.textContent = `Land: ${counts.landVehicle}`;
+      countShip.textContent = `Ship: ${counts.ship}`;
+    }
+
+    function drawGrid() {
+      const columns = Math.floor(canvas.clientWidth / 40);
+      const rows = Math.floor(canvas.clientHeight / 40);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= columns; i += 1) {
+        const x = i * 40;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.clientHeight);
+        ctx.stroke();
+      }
+      for (let j = 0; j <= rows; j += 1) {
+        const y = j * 40;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.clientWidth, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawMap() {
+      ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+      ctx.fillStyle = '#091018';
+      ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+      drawGrid();
+      entities.forEach(entity => {
+        ctx.save();
+        ctx.translate(entity.x, entity.y);
+        ctx.rotate(entity.heading);
+        ctx.fillStyle = entityTypes[entity.type].color;
+        ctx.beginPath();
+        ctx.moveTo(0, -12);
+        ctx.lineTo(18, 0);
+        ctx.lineTo(0, 12);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = '10px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(entity.type.replace(/([A-Z])/g, ' $1').trim(), 0, -18);
+
+        if (selectedEntity && selectedEntity.id === entity.id) {
+          ctx.strokeStyle = '#1a73ff';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, 18, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      });
+    }
+
+    function getCanvasPosition(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      };
+    }
+
+    function findEntityAt(x, y) {
+      return entities.find(entity => {
+        const dx = entity.x - x;
+        const dy = entity.y - y;
+        return Math.hypot(dx, dy) < 18;
+      });
+    }
+
+    function updatePropertyPanel() {
+      propertyPanel.innerHTML = '';
+      if (!selectedEntity) {
+        propertyPanel.innerHTML = '<p class="description">Select an entity on the map to edit its motion values and behavior. Values update immediately.</p>';
+        return;
+      }
+
+      const title = document.createElement('div');
+      title.innerHTML = `<strong>${selectedEntity.label}</strong><br><small>${selectedEntity.id}</small>`;
+      propertyPanel.appendChild(title);
+
+      const props = [
+        { label: 'Velocity', key: 'velocity', step: 1, min: 1 },
+        { label: 'Acceleration', key: 'acceleration', step: 0.1, min: 0 },
+        { label: 'Turn Radius', key: 'turnRadius', step: 1, min: 1 },
+        { label: 'Turning Rate', key: 'turnRate', step: 0.005, min: 0 }
+      ];
+
+      props.forEach(prop => {
+        const field = document.createElement('label');
+        field.textContent = prop.label;
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.step = prop.step;
+        input.min = prop.min;
+        input.value = selectedEntity[prop.key];
+        input.addEventListener('input', () => {
+          selectedEntity[prop.key] = parseFloat(input.value) || selectedEntity[prop.key];
+        });
+        field.appendChild(input);
+        propertyPanel.appendChild(field);
+      });
+    }
+
+    function selectEntity(entity) {
+      selectedEntity = entity;
+      updatePropertyPanel();
+      drawMap();
+    }
+
+    function moveEntities(deltaTime) {
+      entities.forEach(entity => {
+        const turnSign = Math.random() > 0.5 ? 1 : -1;
+        entity.heading += turnSign * entity.turnRate * (deltaTime / 1000);
+        const speed = entity.velocity + (Math.random() - 0.5) * entity.acceleration;
+        entity.x += Math.cos(entity.heading) * speed * (deltaTime / 1000);
+        entity.y += Math.sin(entity.heading) * speed * (deltaTime / 1000);
+
+        if (entity.x < 20) { entity.x = 20; entity.heading = Math.PI - entity.heading; }
+        if (entity.x > canvas.clientWidth - 20) { entity.x = canvas.clientWidth - 20; entity.heading = Math.PI - entity.heading; }
+        if (entity.y < 20) { entity.y = 20; entity.heading = -entity.heading; }
+        if (entity.y > canvas.clientHeight - 20) { entity.y = canvas.clientHeight - 20; entity.heading = -entity.heading; }
+      });
+      drawMap();
+    }
+
+    function animate() {
+      if (!running) return;
+      const nowTime = performance.now();
+      const delta = Math.min(nowTime - lastUpdate, 40);
+      moveEntities(delta);
+      lastUpdate = nowTime;
+      animationId = requestAnimationFrame(animate);
+    }
+
+    function startScenario() {
+      if (running) return;
+      running = true;
+      lastUpdate = performance.now();
+      animate();
+    }
+
+    function pauseScenario() {
+      running = false;
+      if (animationId) cancelAnimationFrame(animationId);
+    }
+
+    function stopScenario() {
+      pauseScenario();
+      resetToInitial();
+    }
+
+    function handleRandomGeneration() {
+      Object.entries(randomInputs).forEach(([type, input]) => {
+        const count = Number(input.value) || 0;
+        for (let i = 0; i < count; i += 1) {
+          const x = 24 + Math.random() * (canvas.clientWidth - 48);
+          const y = 24 + Math.random() * (canvas.clientHeight - 48);
+          entities.push(createEntity(type, x, y));
+        }
+      });
+      saveInitialState();
+      updateSummary();
+      drawMap();
+    }
+
+    function handleCanvasClick(event) {
+      const { x, y } = getCanvasPosition(event);
+      const entity = findEntityAt(x, y);
+      selectEntity(entity || null);
+    }
+
+    function handleDrop(event) {
+      event.preventDefault();
+      const type = event.dataTransfer.getData('text/plain');
+      if (!type || !entityTypes[type]) return;
+      createEntityAt(type, event.clientX, event.clientY);
+      selectEntity(null);
+    }
+
+    function setupDragAndDrop() {
+      document.querySelectorAll('.entity-item').forEach(item => {
+        item.addEventListener('dragstart', event => {
+          event.dataTransfer.setData('text/plain', event.currentTarget.dataset.type);
+          event.dataTransfer.effectAllowed = 'copy';
+        });
+      });
+      canvas.addEventListener('dragover', event => {
+        event.preventDefault();
+      });
+      canvas.addEventListener('drop', handleDrop);
+      canvas.addEventListener('click', handleCanvasClick);
+    }
+
+    function init() {
+      resizeCanvas();
+      setupDragAndDrop();
+      updateSummary();
+      updatePropertyPanel();
+      drawMap();
+      window.addEventListener('resize', resizeCanvas);
+      playBtn.addEventListener('click', startScenario);
+      pauseBtn.addEventListener('click', pauseScenario);
+      stopBtn.addEventListener('click', stopScenario);
+      resetBtn.addEventListener('click', resetToInitial);
+      generateBtn.addEventListener('click', handleRandomGeneration);
+    }
+
+    init();
+  </script>
+</body>
+</html>
